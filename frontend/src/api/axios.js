@@ -1,46 +1,67 @@
 import axios from 'axios';
 
 /**
- * API base URL:
- * - Dev: /api (proxied by Vite to http://localhost:5000)
- * - Prod: set VITE_API_URL in .env to your deployed backend
+ * Backend URL
+ * Example:
+ * https://smart-kirana-system.onrender.com
  */
-const API_URL = import.meta.env.VITE_API_URL || '/api';
 
+const API_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+/**
+ * Axios instance
+ */
 const api = axios.create({
-  baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: `${API_URL}/api`,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
   timeout: 30000,
 });
 
-// Attach JWT token to every request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+/**
+ * Attach JWT token automatically
+ */
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
 
-// Handle 401 — redirect to login
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+/**
+ * Handle errors globally
+ */
 api.interceptors.response.use(
   (response) => response,
+
   (error) => {
     const message =
       error.response?.data?.message ||
       (error.code === 'ERR_NETWORK'
-        ? 'Cannot reach server. Is backend running on port 5000?'
-        : 'Request failed');
+        ? 'Cannot connect to backend server'
+        : 'Something went wrong');
 
     error.friendlyMessage = message;
 
+    // Auto logout on unauthorized
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
     }
+
     return Promise.reject(error);
   }
 );
