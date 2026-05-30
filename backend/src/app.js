@@ -6,6 +6,7 @@ const cors = require('cors');
 const routes = require('./routes');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
+const { env } = require('./config/env');
 
 const app = express();
 
@@ -14,7 +15,7 @@ const app = express();
 // ==============================
 
 app.use(cors({
-  origin: 'https://smart-kirana-app.vercel.app',
+  origin: env.corsOrigin,
   credentials: true,
 }));
 
